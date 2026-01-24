@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.18.4"
+__generated_with = "0.19.4"
 app = marimo.App(width="medium")
 
 
@@ -165,6 +165,70 @@ def _(input, mo):
     mo.md(rf"""
     Part 2 Solution: {sum_invalid_IDs_2(input)}
     """)
+    return
+
+
+@app.cell
+def _(
+    mo,
+    total_invalid_actual_part1,
+    total_invalid_actual_part2,
+    total_invalid_example_part1,
+    total_invalid_example_part2,
+):
+    mo.md(f"""
+    ### Invalid ID counts summary
+
+    - Example Input:
+      - Total invalid IDs (Part 1): {total_invalid_example_part1}
+      - Total invalid IDs (Part 2): {total_invalid_example_part2}
+
+    - Actual Input:
+      - Total invalid IDs (Part 1): {total_invalid_actual_part1}
+      - Total invalid IDs (Part 2): {total_invalid_actual_part2}
+    """)
+    return
+
+
+@app.cell
+def _(alt, example_counts):
+    chart_example = alt.Chart(example_counts).transform_fold(
+        ["count_part1", "count_part2"], as_=["part", "count"]
+    ).mark_bar().encode(
+        x=alt.X("line_index:O", title="Line Index"),
+        y=alt.Y("count:Q", title="Invalid ID Count"),
+        color=alt.Color("part:N", title="Part", scale=alt.Scale(scheme="tableau10")),
+        tooltip=[
+            alt.Tooltip("line_index:O", title="Line"),
+            alt.Tooltip("start:Q", title="Start"),
+            alt.Tooltip("end:Q", title="End"),
+            alt.Tooltip("part:N", title="Part"),
+            alt.Tooltip("count:Q", title="Invalid Count"),
+        ]
+    ).properties(title="Example Input: Invalid ID Counts by Line").interactive()
+
+    chart_example
+    return
+
+
+@app.cell
+def _(actual_counts, alt):
+    chart_actual = alt.Chart(actual_counts).transform_fold(
+        ["count_part1", "count_part2"], as_=["part", "count"]
+    ).mark_bar().encode(
+        x=alt.X("line_index:O", title="Line Index"),
+        y=alt.Y("count:Q", title="Invalid ID Count"),
+        color=alt.Color("part:N", title="Part", scale=alt.Scale(scheme="tableau10")),
+        tooltip=[
+            alt.Tooltip("line_index:O", title="Line"),
+            alt.Tooltip("start:Q", title="Start"),
+            alt.Tooltip("end:Q", title="End"),
+            alt.Tooltip("part:N", title="Part"),
+            alt.Tooltip("count:Q", title="Invalid Count"),
+        ]
+    ).properties(title="Actual Input: Invalid ID Counts by Line").interactive()
+
+    chart_actual
     return
 
 
