@@ -90,10 +90,10 @@ def sum_joltage_2(input):
                 sub_bank = bank[idx + 1 :]
             else:
                 sub_bank = bank[idx + 1 : 1 - num_batteries]
-            idx_max = sub_bank.index(max(sub_bank))
-            answer.append(sub_bank[idx_max])
+            idx = bank.index(max(sub_bank))
+            answer.append(bank[idx])
             num_batteries -= 1
-            idx = idx + 1 + idx_max
+            bank[0 : idx + 1] = "0" * len(bank[0 : idx + 1])
         joltage += int("".join(answer))
     return joltage
 
