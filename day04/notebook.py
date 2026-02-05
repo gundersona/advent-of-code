@@ -4,6 +4,14 @@ __generated_with = "0.19.7"
 app = marimo.App(width="medium")
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Day 4
+    """)
+    return
+
+
 @app.cell
 def _():
     import marimo as mo
@@ -34,6 +42,14 @@ def _(mo, pl):
     # mo.accordion({"Example Input": df_example, "Puzzle Input": df_input})
     mo.accordion({"Example Input": example, "Puzzle Input": input})
     return example, example_solution_1, input
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Part 1
+    """)
+    return
 
 
 @app.function
@@ -81,15 +97,96 @@ def check_all_locations(input):
     return num_accessible_rolls
 
 
-@app.cell
-def _(example, example_solution_1):
-    check_all_locations(example) == example_solution_1
+@app.cell(hide_code=True)
+def _(example, example_solution_1, mo):
+    mo.md(rf"""
+    ### Is Part 1 example solution correct? {check_all_locations(example) == example_solution_1}
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(input, mo):
+    mo.md(rf"""
+    ### Part 1 solution: {check_all_locations(input)}
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Part 2
+    """)
     return
 
 
 @app.cell
-def _(input):
-    check_all_locations(input)
+def _():
+    example_solution_2 = 43
+    return (example_solution_2,)
+
+
+@app.function
+def count_and_update_rolls(input):
+    num_accessible_rolls = 0
+    idx_accessible_rolls = []
+
+    # count and record index of accessible rolls
+    for i in range(len(input)):
+        for j in range(len(input[0])):
+            roll = input[i][j]
+            if roll == "@":
+                if num_rolls_adjacent(input, i, j) < 4:
+                    num_accessible_rolls += 1
+                    idx_accessible_rolls.append([i, j])
+
+    # remove accessible rolls from grid
+    updated_grid = [
+        row[:] for row in input
+    ]  # deep copy to avoid modifying original
+    for idx in idx_accessible_rolls:
+        updated_grid[idx[0]][idx[1]] = "."
+
+    return num_accessible_rolls, updated_grid
+
+
+@app.cell
+def _(example, mo, pl):
+    # Test case: visualize updated grid
+    num, ex_mod = count_and_update_rolls(example)
+    df = pl.DataFrame(ex_mod).transpose()
+    df.columns = [f"c{i}" for i in range(len(df.columns))]
+    mo.accordion({"grid after first round of roll removal": df})
+    return
+
+
+@app.function
+def remove_max_rolls(input):
+    rolls_are_accessible = True
+    num_rolls_removed = 0
+    while rolls_are_accessible:
+        rolls, updated_grid = count_and_update_rolls(input)
+        num_rolls_removed += rolls
+        input = [row[:] for row in updated_grid]
+        if rolls == 0:
+            rolls_are_accessible = False
+    return num_rolls_removed
+
+
+@app.cell(hide_code=True)
+def _(example, example_solution_2, mo):
+    mo.md(rf"""
+    ### Is Part 2 example solution correct? {remove_max_rolls(example) == example_solution_2}
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(input, mo):
+    mo.md(rf"""
+    ### Part 2 solution: {remove_max_rolls(input)}
+    """)
     return
 
 

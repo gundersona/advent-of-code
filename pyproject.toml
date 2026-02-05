@@ -17,4 +17,5 @@ dependencies = [
     "pyzmq>=27.1.0",
     "ruff>=0.14.9",
     "sqlglot>=28.3.0",
+    "wigglystuff>=0.2.21",
 ]
