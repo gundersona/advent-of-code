@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "marimo",
+#     "polars==1.38.1",
+# ]
+# ///
+
 import marimo
 
 __generated_with = "0.20.4"
@@ -15,10 +23,16 @@ def _(mo):
 @app.cell
 def _():
     import marimo as mo
+
+    return (mo,)
+
+
+@app.cell
+def _():
     from pathlib import Path
     import polars as pl
 
-    return Path, mo, pl
+    return Path, pl
 
 
 @app.cell(hide_code=True)
