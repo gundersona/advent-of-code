@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.19.11"
+__generated_with = "0.20.4"
 app = marimo.App()
 
 
@@ -16,8 +16,9 @@ def _(mo):
 def _():
     import marimo as mo
     from pathlib import Path
+    import polars as pl
 
-    return Path, mo
+    return Path, mo, pl
 
 
 @app.cell(hide_code=True)
@@ -48,10 +49,11 @@ def _(Path):
     )
 
 
-@app.cell
-def _(example_fresh_ranges):
-    lower, upper = example_fresh_ranges[0].split("-")
-    upper
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Part 1
+    """)
     return
 
 
@@ -77,7 +79,7 @@ def count_fresh_ids(ranges, ids):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Part 1 example check
+    ### Part 1 example check
     """)
     return
 
@@ -93,7 +95,7 @@ def _(example_available_ingredients, example_fresh_ranges, example_solution_1):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Part 1 solution
+    ### Part 1 solution
     """)
     return
 
@@ -104,10 +106,12 @@ def _(input_available_ingredients, input_fresh_ranges):
     return
 
 
-@app.cell
-def _():
-    example_solution_2 = 14
-    return (example_solution_2,)
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Part 2
+    """)
+    return
 
 
 @app.function
@@ -116,71 +120,240 @@ def count_all_fresh_ids(id_ranges):
     for id_range in id_ranges:
         lower, upper = id_range.split("-")
         ids += int(upper) - int(lower) + 1
+        if (int(upper) - int(lower)) < 0:
+            print("NEGATIVE RANGE")
     return ids
-
-
-@app.function
-def count_fresh_id_duplicates(id_ranges):
-    ids = 0
-    ranges = [
-        row for row in id_ranges
-    ]  # deep copy to avoid modifying original
-    for i, id_range in enumerate(ranges):
-        lower, upper = map(int, id_range.split("-"))
-        for id_range_to_compare in ranges[i + 1 :]:
-            lower_compare, upper_compare = map(
-                int, id_range_to_compare.split("-")
-            )
-            # Case 1: entire range overlaps, nothing unique
-            if lower_compare >= lower and upper_compare <= upper:
-                ids += upper_compare - lower_compare + 1
-                ranges.remove(id_range_to_compare)
-            # Case 2: top part of range overlaps, bottom part unique
-            elif (
-                lower_compare < lower
-                and upper_compare <= upper
-                and upper_compare >= lower
-            ):
-                ids += upper_compare - lower + 1
-                ranges[i] = f"{lower_compare}-{lower - 1}"
-            # Case 3: bottom part of range overlaps, top part unique
-            elif (
-                upper_compare > upper
-                and lower_compare >= lower
-                and lower_compare <= upper
-            ):
-                ids += upper - lower_compare + 1
-                ranges[i] = f"{upper + 1}-{upper_compare}"
-            # Case 4: entire range overlaps, top and bottom part unique
-            elif lower_compare < lower and upper_compare > upper:
-                ids += upper - lower + 1
-                ranges[i] = f"{lower_compare}-{lower - 1}"
-                ranges.append(f"{upper + 1}-{upper_compare}")
-
-    return ids
-
-
-@app.function
-def count_all_fresh_ids_no_duplicates(id_ranges):
-    return count_all_fresh_ids(id_ranges) - count_fresh_id_duplicates(
-        id_ranges
-    )
 
 
 @app.cell
-def _(example_fresh_ranges):
+def _(pl):
+    def count_fresh_id_duplicates(id_ranges):
+
+        ids = 0
+        data = []
+        ranges = [
+            row for row in id_ranges
+        ]  # deep copy to avoid modifying original
+
+        for i, id_range in enumerate(ranges):
+            if id_range == "0-0":
+                continue
+            lower, upper = map(int, id_range.split("-"))
+
+            for j, id_range_to_compare in enumerate(ranges[i + 1 :]):
+                k = i + j + 1
+                lower_compare, upper_compare = map(
+                    int, id_range_to_compare.split("-")
+                )
+
+                # Case 1: entire range overlaps, nothing unique
+                if lower_compare >= lower and upper_compare <= upper:
+                    overlap_count = upper_compare - lower_compare + 1
+                    ids += overlap_count
+                    new_range = "0-0"
+                    data.append(
+                        {
+                            "Case": 1,
+                            "Range": id_range,
+                            "Comparison Range": id_range_to_compare,
+                            "ID Count": overlap_count,
+                            "New Range": new_range,
+                            "New Range End": None,
+                        }
+                    )
+                    ranges[k] = new_range
+
+                # Case 2: top part of range overlaps, bottom part unique
+                elif (
+                    lower_compare < lower
+                    and upper_compare <= upper
+                    and upper_compare >= lower
+                ):
+                    overlap_count = upper_compare - lower + 1
+                    ids += overlap_count
+                    new_range = f"{lower_compare}-{lower - 1}"
+                    data.append(
+                        {
+                            "Case": 2,
+                            "Range": id_range,
+                            "Comparison Range": id_range_to_compare,
+                            "ID Count": overlap_count,
+                            "New Range": new_range,
+                            "New Range End": None,
+                        }
+                    )
+                    ranges[k] = new_range
+
+                # Case 3: bottom part of range overlaps, top part unique
+                elif (
+                    upper_compare > upper
+                    and lower_compare >= lower
+                    and lower_compare <= upper
+                ):
+                    overlap_count = upper - lower_compare + 1
+                    ids += overlap_count
+                    new_range = f"{upper + 1}-{upper_compare}"
+                    data.append(
+                        {
+                            "Case": 3,
+                            "Range": id_range,
+                            "Comparison Range": id_range_to_compare,
+                            "ID Count": overlap_count,
+                            "New Range": new_range,
+                            "New Range End": None,
+                        }
+                    )
+                    ranges[k] = new_range
+
+                # Case 4: entire range overlaps, top and bottom part unique
+                elif lower_compare < lower and upper_compare > upper:
+                    overlap_count = upper - lower + 1
+                    ids += overlap_count
+                    new_range = f"{lower_compare}-{lower - 1}"
+                    new_range_end = f"{upper + 1}-{upper_compare}"
+                    data.append(
+                        {
+                            "Case": 4,
+                            "Range": id_range,
+                            "Comparison Range": id_range_to_compare,
+                            "ID Count": overlap_count,
+                            "New Range": new_range,
+                            "New Range End": new_range_end,
+                        }
+                    )
+                    ranges[k] = new_range
+                    ranges.append(new_range_end)
+
+                # Case 5: no overlap
+                else:
+                    data.append(
+                        {
+                            "Case": 5,
+                            "Range": id_range,
+                            "Comparison Range": id_range_to_compare,
+                            "ID Count": 0,
+                            "New Range": id_range_to_compare,
+                            "New Range End": None,
+                        }
+                    )
+
+        df = pl.DataFrame(
+            data,
+            schema={
+                "Case": pl.Int64,
+                "Range": pl.Utf8,
+                "Comparison Range": pl.Utf8,
+                "ID Count": pl.Int64,
+                "New Range": pl.Utf8,
+                "New Range End": pl.Utf8,
+            },
+        )
+        return ids, df
+
+    return (count_fresh_id_duplicates,)
+
+
+@app.cell
+def _(count_fresh_id_duplicates):
+    def count_all_fresh_ids_no_duplicates(id_ranges):
+        a = count_all_fresh_ids(id_ranges)
+        b, _ = count_fresh_id_duplicates(id_ranges)
+        return a - b
+
+    return (count_all_fresh_ids_no_duplicates,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Part 2 example
+    """)
+    return
+
+
+@app.cell
+def _():
+    example_solution_2 = 16
+    return
+
+
+@app.cell
+def _(count_all_fresh_ids_no_duplicates, example_fresh_ranges):
     count_all_fresh_ids_no_duplicates(example_fresh_ranges)
     return
 
 
-@app.cell
-def _(example_fresh_ranges, example_solution_2):
-    count_all_fresh_ids_no_duplicates(example_fresh_ranges) == example_solution_2
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Part 2 additional example from reddit
+    https://www.reddit.com/r/adventofcode/comments/1pf0g8l/2025_day_5_part_2_request_for_additional_sample/
+    """)
     return
 
 
 @app.cell
-def _(input_fresh_ranges):
+def _():
+    example_fresh_ranges_2 = """
+    200-300
+    100-101
+    1-1
+    2-2
+    3-3
+    1-3
+    1-3
+    2-2
+    50-70
+    10-10
+    98-99
+    99-99
+    99-99
+    99-100
+    1-1
+    100-100
+    100-100
+    100-101
+    200-300
+    201-300
+    202-300
+    250-251
+    98-99
+    100-100
+    100-101
+    1-101
+    """.split()
+    return (example_fresh_ranges_2,)
+
+
+@app.cell
+def _(count_fresh_id_duplicates, example_fresh_ranges_2):
+    _, _df = count_fresh_id_duplicates(example_fresh_ranges_2)
+    _df
+    return
+
+
+@app.cell
+def _():
+    example_solution_2_2 = 202
+    return
+
+
+@app.cell
+def _(count_all_fresh_ids_no_duplicates, example_fresh_ranges_2):
+    count_all_fresh_ids_no_duplicates(example_fresh_ranges_2)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Part 2 Solution
+    """)
+    return
+
+
+@app.cell
+def _(count_all_fresh_ids_no_duplicates, input_fresh_ranges):
     count_all_fresh_ids_no_duplicates(input_fresh_ranges)
     return
 
