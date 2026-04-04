@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "advent-of-code-data>=2.2.0",
     "altair>=6.0.0",
     "duckdb>=1.4.3",
     "marimo>=0.17.0",
